@@ -1,34 +1,29 @@
 <script setup>
 import { ref } from 'vue'
-
 const msg = ref('')
 var temp = ref('Привет')
 const tg = window.Telegram.WebApp
+import { RouterLink, RouterView } from 'vue-router'
+var token
 tg.expand()
-function msgTelegram() {
-  try {
-    tg.s
-  } catch (e) {
-    msg.value = e
-  }
-  console.log(data)
-  tg.close()
-}
-
-function sendMsg() {
-  tg.sendData(msg.value)
-}
 </script>
 <template>
+  <header>
+    <nav>
+      <!-- <RouterLink to="/login">На логин</RouterLink> -->
+    </nav>
+  </header>
   <body>
-    <div class="remix">
+    <RouterView />
+
+    <!-- <div class="">
       <h2>{{ temp }}</h2>
       <h1>{{ msg }}</h1>
       <input v-model="msg" />
       <button @click="sendMsg">Отправить</button>
       <button class="btn btn-primary">Кнопка</button>
     </div>
-    <button>Кнопка</button>
+    <button>Кнопка</button> -->
   </body>
 </template>
 
