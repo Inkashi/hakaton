@@ -26,6 +26,11 @@ const router = createRouter({
       name: 'meetings',
       component: () => import('../views/Meetings.vue'),
     },
+    {
+      path: '/createmeeting',
+      name: 'create',
+      component: () => import('../views/CreateMeeting.vue'),
+    },
   ],
 })
 

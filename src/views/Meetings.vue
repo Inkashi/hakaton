@@ -83,6 +83,49 @@ form {
   }
 }
 
+.one_block-wrapper {
+  position: relative;
+  margin: 20px 0;
+}
+
+.one_block {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.state-label {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 2;
+  color: #fff;
+}
+
+.state-started {
+  background-color: #28a745;
+}
+
+.state-ended {
+  background-color: #6c757d;
+}
+
+.state-booked {
+  background-color: #17a2b8;
+}
+
+.blue {
+  background-color: #70abf2 !important;
+}
+
 .block_info {
   width: 90%;
   position: relative;
@@ -96,7 +139,7 @@ form {
   }
   button {
     display: block;
-    width: 90% !important;
+    width: 100% !important;
     left: 5%;
     background-color: #008d49;
     position: relative;
@@ -104,6 +147,17 @@ form {
   }
   div {
     padding-top: 10px;
+  }
+}
+
+.two_button {
+  position: relative;
+  right: 5%;
+  width: 100% !important;
+  button {
+    border: none;
+    margin-left: 10px;
+    width: 100% !important;
   }
 }
 
@@ -161,9 +215,10 @@ form {
       <div class="d-flex flex-row fitnes">
         <div>Статус</div>
         <select v-model="state" name="select-state" id="select-state">
+          <option value=""></option>
           <option value="booked">Забранирована</option>
-          <option value="cancelled">Начата</option>
-          <option value="started">Отменена</option>
+          <option value="cancelled">Отменена</option>
+          <option value="started">Начата</option>
           <option value="ended">Закончена</option>
         </select>
       </div>
@@ -198,20 +253,26 @@ form {
     </div>
   </form>
   <div v-if="meetings != null" class="block_info">
-    <div v-for="meet in meetings">
+    <div v-for="meet in meetings" :key="meet.id" class="one_block-wrapper">
+      <div :class="['state-label', getStateClass(meet.state)]">
+        {{ getStateText(meet.state) }}
+      </div>
       <div class="d-flex flex-column one_block">
         <h3>{{ meet.name }}</h3>
-        <span
-          >{{ meet.startedAt.split('T')[0] }}, {{ meet.startedAt.split('T')[1].slice(0, 5) }} -
-          {{ meet.duration }} мин</span
-        >
+        <span>
+          {{ meet.startedAt.split('T')[0] }}, {{ meet.startedAt.split('T')[1].slice(0, 5) }} -
+          {{ meet.duration }} мин
+        </span>
         <div class="d-flex flex-row align-center">
           <b>Организатор:</b>
           <span>{{ meet.createdByName }}</span>
         </div>
-        <button @click="meet.moreInfo = !meet.moreInfo" class="btn btn-primary w-25">
-          {{ meet.moreInfo ? 'Свернуть' : 'Подробнее' }}
-        </button>
+        <div class="d-flex flex-row two_button">
+          <button class="btn btn-primary blue">Присоедениться к ВКС</button>
+          <button @click="meet.moreInfo = !meet.moreInfo" class="btn btn-primary w-25">
+            {{ meet.moreInfo ? 'Свернуть' : 'Подробнее' }}
+          </button>
+        </div>
         <div v-if="meet.moreInfo" class="d-flex flex-column">
           <b>Место проведения:</b>
           <span>{{ meet.departamentName }}</span>
@@ -219,8 +280,8 @@ form {
           <span>{{ meet.roomInfo }}</span>
           <b>Студенты:</b>
           <div class="d-flex flex-row">
-            <span v-for="part in meet.participants"
-              >{{ part.lastName }} {{ part.firstName }} &nbsp;
+            <span v-for="part in meet.participants" :key="part.id">
+              {{ part.lastName }} {{ part.firstName }} &nbsp;
             </span>
           </div>
         </div>
@@ -272,15 +333,45 @@ const owners = ref([])
 const departamentId = ref(2)
 const organizedBy = ref(1)
 
+function getStateClass(state) {
+  switch (state) {
+    case 'started':
+      return 'state-started'
+    case 'ended':
+      return 'state-ended'
+    case 'booked':
+      return 'state-booked'
+    case 'cancelled':
+      return 'state-cancelled'
+    default:
+      return ''
+  }
+}
+function getStateText(state) {
+  switch (state) {
+    case 'started':
+      return 'Началось'
+    case 'ended':
+      return 'Завершено'
+    case 'booked':
+      return 'Забронировано'
+    case 'cancelled':
+      return 'state-cancelled'
+    default:
+      return ''
+  }
+}
+
 onMounted(async () => {
   deparments.value = await get_departments()
   owners.value = await get_owners()
+  await filtred_meetings()
 })
 
 const fromDatetime = ref(
   new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
 )
-const toDatetime = ref(new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16))
+const toDatetime = ref(new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16))
 
 const filtred_meetings = async () => {
   axios({
@@ -292,9 +383,8 @@ const filtred_meetings = async () => {
       departmentid: departamentId.value ? departamentId.value : undefined,
       organizedBy: organizedBy.value ? organizedBy.value : undefined,
       filter: filter.value ? filter.value : undefined,
-      showDeleted: true,
       rowsPerPage: 3,
-      state: state.value,
+      state: state.value ? state.value : undefined,
       fromDatetime: fromDatetime.value + ':00.000',
       toDatetime: toDatetime.value + ':00.000',
     },
@@ -303,13 +393,16 @@ const filtred_meetings = async () => {
     },
   })
     .then(async (response) => {
-      const temp = response.data.data
+      console.log(response.data.data)
+      var temp = response.data.data
       console.log(temp)
-      for (const meet of temp) {
+      console.log(fromDatetime.value + ':00.000')
+      for (let meet of temp) {
         var tempInfo = await get_meetInfo(meet.id)
+        console.log(tempInfo.participants)
         if (
           meet.organizedBy == localStorage.getItem('id') ||
-          tempInfo.participants.some((user) => user.id === localStorage.getItem('id'))
+          tempInfo.participants?.some((user) => user.id === localStorage.getItem('id'))
         ) {
           meet.createdByName = await get_user(meet.createdBy)
           meet.roomInfo = tempInfo.room
@@ -323,9 +416,13 @@ const filtred_meetings = async () => {
 
           meet.participants = tempInfo.participants
           meet.moreInfo = false
+          console.log(meet)
+          // meet.link = tempInfo.ciscoRoom.connectUrl ? tempInfo.ciscoRoom.connectUrl : undefined
+        } else {
+          temp = temp.filter((item) => item !== meet)
         }
       }
-
+      console.log(temp)
       meetings.value = temp
     })
     .catch((error) => {
@@ -340,6 +437,9 @@ const get_user = async (id) => {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
     })
+    // if ((response.data.lastName = ' ' && response.data.firstName == ' ')) {
+    //   return 'Не указан'
+    // } else {
     return `${response.data.lastName} ${response.data.firstName}`
   } catch (error) {
     console.error(`Ошибка при загрузке пользователя с ID ${id}:`, error)
